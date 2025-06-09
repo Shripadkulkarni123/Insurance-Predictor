@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor
+import pickle
+import os
 
 # Set page config
 st.set_page_config(
@@ -53,15 +52,15 @@ st.markdown("""
 # Title
 st.markdown('<div class="title-text">🏥 Insurance Price Prediction</div>', unsafe_allow_html=True)
 
-# Load and prepare data
-@st.cache_data
-def load_data():
-    url = "https://raw.githubusercontent.com/stedy/Machine-Learning-with-R-datasets/master/insurance.csv"
-    data = pd.read_csv(url)
-    return data
+# Load the model
+@st.cache_resource
+def load_model():
+    with open('model.pkl', 'rb') as f:
+        model_data = pickle.load(f)
+    return model_data['model'], model_data['scaler'], model_data['feature_columns']
 
-# Load the data
-data = load_data()
+# Load model
+model, scaler, feature_columns = load_model()
 
 # Simple form layout
 col1, col2 = st.columns(2)
@@ -85,25 +84,6 @@ input_data = pd.DataFrame({
     'smoker': [smoker],
     'region': [region]
 })
-
-# Train the model
-@st.cache_resource
-def train_model():
-    X = pd.get_dummies(data.drop('charges', axis=1))
-    y = data['charges']
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
-    model.fit(X_train_scaled, y_train)
-    
-    return model, scaler, X.columns
-
-# Train the model
-model, scaler, feature_columns = train_model()
 
 # Make prediction
 def predict_charges(input_data):
